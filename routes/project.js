@@ -186,4 +186,212 @@ router.post('/', validateCreateProject, async (req, res) => {
 
     // Populate the created project
     await project.populate([
-      { path: 'clientId', select: '
+      { path: 'clientId', select: 'name company email' },
+      { path: 'createdBy', select: 'name email' }
+    ]);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Project created successfully',
+      data: { project }
+    });
+  } catch (error) {
+    console.error('Create project error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error creating project'
+    });
+  }
+});
+
+// @desc    Update project
+// @route   PUT /api/projects/:id
+// @access  Private
+router.put('/:id', validateUpdateProject, async (req, res) => {
+  try {
+    const updateData = { ...req.body };
+
+    // If clientId is being updated, verify the new client exists and is active
+    if (updateData.clientId) {
+      const client = await Client.findById(updateData.clientId);
+      if (!client) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Client not found'
+        });
+      }
+
+      if (client.status === 'inactive') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Cannot assign project to inactive client'
+        });
+      }
+    }
+
+    // Convert date strings to Date objects if provided
+    if (updateData.startDate) {
+      updateData.startDate = new Date(updateData.startDate);
+    }
+    if (updateData.endDate) {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).populate([
+      { path: 'clientId', select: 'name company email' },
+      { path: 'createdBy', select: 'name email' }
+    ]);
+
+    if (!project) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Project not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Project updated successfully',
+      data: { project }
+    });
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error updating project'
+    });
+  }
+});
+
+// @desc    Delete project
+// @route   DELETE /api/projects/:id
+// @access  Private
+router.delete('/:id', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Project not found'
+      });
+    }
+
+    // Only allow deletion by project creator or admin
+    if (project.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to delete this project'
+      });
+    }
+
+    await Project.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Project deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error deleting project'
+    });
+  }
+});
+
+// @desc    Get projects by client
+// @route   GET /api/projects/client/:clientId
+// @access  Private
+router.get('/client/:clientId', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+
+    // Verify client exists
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Client not found'
+      });
+    }
+
+    const projects = await Project.find({ clientId })
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        client: {
+          id: client._id,
+          name: client.name,
+          company: client.company
+        },
+        projects
+      }
+    });
+  } catch (error) {
+    console.error('Get projects by client error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching projects'
+    });
+  }
+});
+
+// @desc    Get project statistics
+// @route   GET /api/projects/stats
+// @access  Private
+router.get('/stats/overview', async (req, res) => {
+  try {
+    const stats = await Project.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalBudget: { $sum: '$budget' },
+          avgBudget: { $avg: '$budget' }
+        }
+      }
+    ]);
+
+    const totalProjects = await Project.countDocuments();
+    const totalBudget = await Project.aggregate([
+      { $group: { _id: null, total: { $sum: '$budget' } } }
+    ]);
+
+    const overallStats = {
+      totalProjects,
+      totalBudget: totalBudget[0]?.total || 0,
+      statusBreakdown: stats.reduce((acc, stat) => {
+        acc[stat._id] = {
+          count: stat.count,
+          totalBudget: stat.totalBudget,
+          avgBudget: Math.round(stat.avgBudget)
+        };
+        return acc;
+      }, {})
+    };
+
+    res.status(200).json({
+      status: 'success',
+      data: { stats: overallStats }
+    });
+  } catch (error) {
+    console.error('Get project stats error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching project statistics'
+    });
+  }
+});
+
+export default router;
