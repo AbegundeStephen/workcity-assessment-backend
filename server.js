@@ -6,16 +6,15 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import dotenv from "dotenv";
+import connectDB from "./config/database.js";
+import errorHandler from "./middleware/errorHandler.js";
 
 dotenv.config({ path: "./.env.example" });
 
-const connectDB = require("./config/database");
-const errorHandler = require("./middleware/errorHandler");
-
 // Import routes
-const authRoutes = require("./routes/auth");
-const clientRoutes = require("./routes/clients");
-const projectRoutes = require("./routes/projects");
+import authRoutes from "./routes/auth.js";
+import clientRoutes from "./routes/clients.js";
+import projectRoutes from "./routes/projects.js";
 
 const app = express();
 
@@ -38,7 +37,7 @@ app.use(limiter);
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:8000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
   })
 );
@@ -84,7 +83,7 @@ app.all("*", (req, res) => {
 // Global error handling middleware
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 6000;
 
 const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);

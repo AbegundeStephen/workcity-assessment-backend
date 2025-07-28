@@ -1,12 +1,12 @@
 import express from "express";
-import { protect, authorize } from "../middleware/auth";
-const {
+import { protect, authorize } from "../middleware/auth.js";
+import {
   validateCreateClient,
   validateUpdateClient,
   validateClientQuery,
-} = require("../validation/client");
-const Client = require("../models/Client");
-const Project = require("../models/Project");
+} from "../validation/client.js";
+import Client from "../models/Client.js";
+import Project from "../models/Project.js";
 
 const router = express.Router();
 

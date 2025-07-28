@@ -1,8 +1,8 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { validateRegister, validateLogin } from "../validation/auth";
-import { generateToken } from "../middleware/auth";
-import User from "../models/User";
+import { validateRegister, validateLogin } from "../validation/auth.js";
+import { generateToken, protect, authorize } from "../middleware/auth.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -124,7 +124,7 @@ router.post("/login", authLimiter, validateLogin, async (req, res) => {
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
-router.get("/me", require("../middleware/auth").protect, async (req, res) => {
+router.get("/me",protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const clientSchema = new mongoose.Schema(
   {
@@ -79,4 +79,4 @@ clientSchema.pre("remove", async function (next) {
   }
 });
 
-module.exports = mongoose.model("Client", clientSchema);
+export default mongoose.model("Client", clientSchema);

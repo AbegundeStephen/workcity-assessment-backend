@@ -1,12 +1,12 @@
-const express = require('express');
-const { protect, authorize } = require('../middleware/auth');
-const {
+import express from "express";
+import { protect, authorize } from "../middleware/auth.js";
+import {
   validateCreateProject,
   validateUpdateProject,
-  validateProjectQuery
-} = require('../validation/project');
-const Project = require('../models/Project');
-const Client = require('../models/Client');
+  validateProjectQuery,
+} from "../validation/project.js";
+import Project from "../models/Project.js";
+import Client from "../models/Client.js";
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.use(protect);
 // @desc    Get all projects
 // @route   GET /api/projects
 // @access  Private
-router.get('/', validateProjectQuery, async (req, res) => {
+router.get("/", validateProjectQuery, async (req, res) => {
   try {
     const {
       page,
@@ -31,7 +31,7 @@ router.get('/', validateProjectQuery, async (req, res) => {
       endDateFrom,
       endDateTo,
       budgetMin,
-      budgetMax
+      budgetMax,
     } = req.query;
 
     // Build query
@@ -40,8 +40,8 @@ router.get('/', validateProjectQuery, async (req, res) => {
     // Search functionality
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -80,12 +80,12 @@ router.get('/', validateProjectQuery, async (req, res) => {
 
     // Build sort object
     const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
 
     // Execute query with pagination and populate
     const projects = await Project.find(query)
-      .populate('clientId', 'name company email')
-      .populate('createdBy', 'name email')
+      .populate("clientId", "name company email")
+      .populate("createdBy", "name email")
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -99,7 +99,7 @@ router.get('/', validateProjectQuery, async (req, res) => {
     const hasPrevPage = page > 1;
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         projects,
         pagination: {
@@ -108,15 +108,15 @@ router.get('/', validateProjectQuery, async (req, res) => {
           totalRecords: total,
           hasNextPage,
           hasPrevPage,
-          limit
-        }
-      }
+          limit,
+        },
+      },
     });
   } catch (error) {
-    console.error('Get projects error:', error);
+    console.error("Get projects error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error fetching projects'
+      status: "error",
+      message: "Error fetching projects",
     });
   }
 });
@@ -124,28 +124,28 @@ router.get('/', validateProjectQuery, async (req, res) => {
 // @desc    Get single project
 // @route   GET /api/projects/:id
 // @access  Private
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate('clientId', 'name company email phone address')
-      .populate('createdBy', 'name email role');
+      .populate("clientId", "name company email phone address")
+      .populate("createdBy", "name email role");
 
     if (!project) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Project not found'
+        status: "error",
+        message: "Project not found",
       });
     }
 
     res.status(200).json({
-      status: 'success',
-      data: { project }
+      status: "success",
+      data: { project },
     });
   } catch (error) {
-    console.error('Get project error:', error);
+    console.error("Get project error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error fetching project'
+      status: "error",
+      message: "Error fetching project",
     });
   }
 });
@@ -153,23 +153,24 @@ router.get('/:id', async (req, res) => {
 // @desc    Create new project
 // @route   POST /api/projects
 // @access  Private
-router.post('/', validateCreateProject, async (req, res) => {
+router.post("/", validateCreateProject, async (req, res) => {
   try {
-    const { title, description, clientId, status, startDate, endDate, budget } = req.body;
+    const { title, description, clientId, status, startDate, endDate, budget } =
+      req.body;
 
     // Verify client exists and is active
     const client = await Client.findById(clientId);
     if (!client) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Client not found'
+        status: "error",
+        message: "Client not found",
       });
     }
 
-    if (client.status === 'inactive') {
+    if (client.status === "inactive") {
       return res.status(400).json({
-        status: 'error',
-        message: 'Cannot create project for inactive client'
+        status: "error",
+        message: "Cannot create project for inactive client",
       });
     }
 
@@ -181,25 +182,25 @@ router.post('/', validateCreateProject, async (req, res) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       budget,
-      createdBy: req.user.id
+      createdBy: req.user.id,
     });
 
     // Populate the created project
     await project.populate([
-      { path: 'clientId', select: 'name company email' },
-      { path: 'createdBy', select: 'name email' }
+      { path: "clientId", select: "name company email" },
+      { path: "createdBy", select: "name email" },
     ]);
 
     res.status(201).json({
-      status: 'success',
-      message: 'Project created successfully',
-      data: { project }
+      status: "success",
+      message: "Project created successfully",
+      data: { project },
     });
   } catch (error) {
-    console.error('Create project error:', error);
+    console.error("Create project error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error creating project'
+      status: "error",
+      message: "Error creating project",
     });
   }
 });
@@ -207,7 +208,7 @@ router.post('/', validateCreateProject, async (req, res) => {
 // @desc    Update project
 // @route   PUT /api/projects/:id
 // @access  Private
-router.put('/:id', validateUpdateProject, async (req, res) => {
+router.put("/:id", validateUpdateProject, async (req, res) => {
   try {
     const updateData = { ...req.body };
 
@@ -216,15 +217,15 @@ router.put('/:id', validateUpdateProject, async (req, res) => {
       const client = await Client.findById(updateData.clientId);
       if (!client) {
         return res.status(404).json({
-          status: 'error',
-          message: 'Client not found'
+          status: "error",
+          message: "Client not found",
         });
       }
 
-      if (client.status === 'inactive') {
+      if (client.status === "inactive") {
         return res.status(400).json({
-          status: 'error',
-          message: 'Cannot assign project to inactive client'
+          status: "error",
+          message: "Cannot assign project to inactive client",
         });
       }
     }
@@ -237,35 +238,31 @@ router.put('/:id', validateUpdateProject, async (req, res) => {
       updateData.endDate = new Date(updateData.endDate);
     }
 
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      {
-        new: true,
-        runValidators: true
-      }
-    ).populate([
-      { path: 'clientId', select: 'name company email' },
-      { path: 'createdBy', select: 'name email' }
+    const project = await Project.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate([
+      { path: "clientId", select: "name company email" },
+      { path: "createdBy", select: "name email" },
     ]);
 
     if (!project) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Project not found'
+        status: "error",
+        message: "Project not found",
       });
     }
 
     res.status(200).json({
-      status: 'success',
-      message: 'Project updated successfully',
-      data: { project }
+      status: "success",
+      message: "Project updated successfully",
+      data: { project },
     });
   } catch (error) {
-    console.error('Update project error:', error);
+    console.error("Update project error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error updating project'
+      status: "error",
+      message: "Error updating project",
     });
   }
 });
@@ -273,36 +270,39 @@ router.put('/:id', validateUpdateProject, async (req, res) => {
 // @desc    Delete project
 // @route   DELETE /api/projects/:id
 // @access  Private
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Project not found'
+        status: "error",
+        message: "Project not found",
       });
     }
 
     // Only allow deletion by project creator or admin
-    if (project.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (
+      project.createdBy.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({
-        status: 'error',
-        message: 'Not authorized to delete this project'
+        status: "error",
+        message: "Not authorized to delete this project",
       });
     }
 
     await Project.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Project deleted successfully'
+      status: "success",
+      message: "Project deleted successfully",
     });
   } catch (error) {
-    console.error('Delete project error:', error);
+    console.error("Delete project error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error deleting project'
+      status: "error",
+      message: "Error deleting project",
     });
   }
 });
@@ -310,7 +310,7 @@ router.delete('/:id', async (req, res) => {
 // @desc    Get projects by client
 // @route   GET /api/projects/client/:clientId
 // @access  Private
-router.get('/client/:clientId', async (req, res) => {
+router.get("/client/:clientId", async (req, res) => {
   try {
     const { clientId } = req.params;
 
@@ -318,31 +318,31 @@ router.get('/client/:clientId', async (req, res) => {
     const client = await Client.findById(clientId);
     if (!client) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Client not found'
+        status: "error",
+        message: "Client not found",
       });
     }
 
     const projects = await Project.find({ clientId })
-      .populate('createdBy', 'name email')
+      .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         client: {
           id: client._id,
           name: client.name,
-          company: client.company
+          company: client.company,
         },
-        projects
-      }
+        projects,
+      },
     });
   } catch (error) {
-    console.error('Get projects by client error:', error);
+    console.error("Get projects by client error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error fetching projects'
+      status: "error",
+      message: "Error fetching projects",
     });
   }
 });
@@ -350,22 +350,22 @@ router.get('/client/:clientId', async (req, res) => {
 // @desc    Get project statistics
 // @route   GET /api/projects/stats
 // @access  Private
-router.get('/stats/overview', async (req, res) => {
+router.get("/stats/overview", async (req, res) => {
   try {
     const stats = await Project.aggregate([
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
-          totalBudget: { $sum: '$budget' },
-          avgBudget: { $avg: '$budget' }
-        }
-      }
+          totalBudget: { $sum: "$budget" },
+          avgBudget: { $avg: "$budget" },
+        },
+      },
     ]);
 
     const totalProjects = await Project.countDocuments();
     const totalBudget = await Project.aggregate([
-      { $group: { _id: null, total: { $sum: '$budget' } } }
+      { $group: { _id: null, total: { $sum: "$budget" } } },
     ]);
 
     const overallStats = {
@@ -375,21 +375,21 @@ router.get('/stats/overview', async (req, res) => {
         acc[stat._id] = {
           count: stat.count,
           totalBudget: stat.totalBudget,
-          avgBudget: Math.round(stat.avgBudget)
+          avgBudget: Math.round(stat.avgBudget),
         };
         return acc;
-      }, {})
+      }, {}),
     };
 
     res.status(200).json({
-      status: 'success',
-      data: { stats: overallStats }
+      status: "success",
+      data: { stats: overallStats },
     });
   } catch (error) {
-    console.error('Get project stats error:', error);
+    console.error("Get project stats error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Error fetching project statistics'
+      status: "error",
+      message: "Error fetching project statistics",
     });
   }
 });
