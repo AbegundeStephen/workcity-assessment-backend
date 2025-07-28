@@ -13,9 +13,9 @@ const connectDB = require("./config/database");
 const errorHandler = require("./middleware/errorHandler");
 
 // Import routes
-// const authRoutes = require("./routes/auth");
-// const clientRoutes = require("./routes/clients");
-// const projectRoutes = require("./routes/projects");
+const authRoutes = require("./routes/auth");
+const clientRoutes = require("./routes/clients");
+const projectRoutes = require("./routes/projects");
 
 const app = express();
 
@@ -38,7 +38,7 @@ app.use(limiter);
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:8000",
     credentials: true,
   })
 );
@@ -69,9 +69,9 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-// app.use("/api/auth", authRoutes);
-// app.use("/api/clients", clientRoutes);
-// app.use("/api/projects", projectRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/projects", projectRoutes);
 
 // Handle undefined routes
 app.all("*", (req, res) => {
